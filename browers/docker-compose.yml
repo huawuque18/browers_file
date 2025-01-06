@@ -1,0 +1,19 @@
+version: '3.3'
+
+services:
+  file-browser:
+    build: .
+    container_name: file_browser
+    ports:
+      - "19988:5000"
+    volumes:
+      - /home/ubuntu/Downloads:/app/downloads
+    environment:
+      - FLASK_APP=app.py
+    networks:
+      - file-browser-network
+    restart: always
+
+networks:
+  file-browser-network:
+    driver: bridge
