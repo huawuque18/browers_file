@@ -1,8 +1,9 @@
-from flask import Flask, request, render_template_string, send_from_directory, abort
+from flask import Flask, request, render_template_string, send_from_directory, abort, session, redirect, url_for
 from werkzeug.utils import safe_join
 import os
 
 app = Flask(__name__)
+app.secret_key = 'your_secret_key'  # 请替换为实际的密钥
 
 # 指定根目录
 DOWNLOAD_DIRECTORY = "/app/downloads"  # 请替换为实际目录
@@ -156,9 +157,89 @@ HTML_TEMPLATE = """
 </html>
 """
 
+# 登录页面的 HTML 模板
+LOGIN_TEMPLATE = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .login-container {
+            background: white;
+            padding: 20px;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+        .login-container h2 {
+            margin: 0 0 20px 0;
+            font-size: 1.5rem;
+            text-align: center;
+        }
+        .login-container form {
+            display: flex;
+            flex-direction: column;
+        }
+        .login-container input[type="password"] {
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .login-container input[type="submit"] {
+            padding: 10px;
+            background-color: #3f51b5;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .login-container input[type="submit"]:hover {
+            background-color: #303f9f;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h2>Login</h2>
+        <form method="post">
+            <input type="password" name="password" placeholder="Enter Password" required style="padding: 15px; font-size: 1rem;">
+            <input type="submit" value="Login">
+        </form>
+    </div>
+</body>
+</html>
+"""
+
+# 设置访问密码
+ACCESS_PASSWORD = '11223344'  # 请替换为实际的密码
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        if request.form['password'] == ACCESS_PASSWORD:
+            session['logged_in'] = True
+            return redirect(url_for('browse_or_download'))
+        else:
+            return render_template_string(LOGIN_TEMPLATE, error="Invalid password")
+    return render_template_string(LOGIN_TEMPLATE)
+
 @app.route('/files', defaults={'path': ''})
 @app.route('/files/<path:path>')
 def browse_or_download(path):
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+    
     try:
         # 计算完整路径
         full_path = safe_join(DOWNLOAD_DIRECTORY, path)
@@ -191,4 +272,3 @@ def browse_or_download(path):
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
-
